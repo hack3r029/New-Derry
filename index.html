@@ -3,50 +3,79 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>VAMOS FLUTUAR: REMASTER 🎈</title>
+<title>IT: O JOGO 🎈</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
   :root { --primary: #ff0000; --bg: #05000a; }
-  html, body { margin: 0; height: 100%; background-color: var(--bg); display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; font-family: 'Press Start 2P', monospace; user-select: none; color: white; }
+  * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+  
+  html, body { 
+    margin: 0; height: 100%; 
+    background-color: var(--bg); 
+    display: flex; justify-content: center; align-items: center; 
+    overflow: hidden; 
+    font-family: 'Press Start 2P', monospace; 
+    color: white; 
+  }
   
   #game-wrapper { 
     position: relative; 
-    box-shadow: 0 0 60px rgba(200, 0, 0, 0.4); 
-    border: 4px solid #1a1a1a; 
+    box-shadow: 0 0 50px rgba(180, 0, 0, 0.3); 
+    border: 2px solid #222; 
     background: #000; 
-    width: 240px; height: 360px;
+    width: 100%; max-width: 400px; height: 100%; max-height: 800px;
     overflow: hidden;
   }
   
   canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
   
-  /* Efeitos Visuais */
-  .scanline { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%); background-size: 100% 4px; pointer-events: none; z-index: 50; }
-  .vignette { position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 80px rgba(0,0,0,0.9); pointer-events: none; z-index: 51; }
+  /* Efeitos CRT (Retrô) */
+  .scanline { 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+    background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%); 
+    background-size: 100% 4px; pointer-events: none; z-index: 50; 
+  }
+  .vignette { 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.8); pointer-events: none; z-index: 51; 
+  }
 
-  /* Interface */
-  #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; padding: 10px; box-sizing: border-box; }
-  .hud-top { display: flex; justify-content: space-between; font-size: 10px; text-shadow: 1px 1px 0 #000; }
+  /* UI */
+  #ui-layer { position: absolute; top: 10px; left: 10px; right: 10px; pointer-events: none; z-index: 40; display: flex; justify-content: space-between; }
+  .hud-text { font-size: 10px; text-shadow: 2px 2px 0 #000; }
+  
+  /* Loading & Start Screen */
+  #loading-screen { 
+    position: absolute; top:0; left:0; width: 100%; height: 100%; 
+    background: #000; z-index: 200; 
+    display: flex; flex-direction: column; justify-content: center; align-items: center; 
+    transition: opacity 0.5s;
+  }
+  .pulse { animation: pulse 1s infinite alternate; color: red; font-family: 'Creepster'; font-size: 30px; margin-bottom: 20px;}
+  .start-btn { 
+    background: transparent; border: 2px solid red; color: white; padding: 15px; 
+    font-family: 'Press Start 2P'; font-size: 10px; cursor: pointer; display: none; 
+    animation: blink 0.5s infinite alternate;
+  }
   
   /* Modals */
   .modal {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 85%; background: rgba(10, 10, 10, 0.98); border: 2px solid var(--primary); padding: 15px;
-    display: none; flex-direction: column; z-index: 100; box-shadow: 0 0 30px rgba(255,0,0,0.3);
-    text-align: center; border-radius: 4px;
+    width: 80%; background: rgba(20, 0, 0, 0.95); border: 2px solid var(--primary); padding: 20px;
+    display: none; flex-direction: column; z-index: 100; box-shadow: 0 0 30px rgba(255,0,0,0.4);
+    text-align: center; border-radius: 8px;
   }
-  .modal h2 { font-family: 'Creepster', cursive; font-size: 24px; color: var(--primary); margin: 0 0 15px 0; text-shadow: 0 0 5px red; letter-spacing: 2px; }
-  .modal input { background: #000; border: 1px solid #444; color: white; font-family: 'Press Start 2P'; font-size: 8px; padding: 10px; margin-bottom: 10px; outline: none; text-transform: uppercase; width: 100%; box-sizing: border-box; }
-  .modal button { background: var(--primary); border: none; color: white; font-family: 'Press Start 2P'; font-size: 8px; padding: 10px; cursor: pointer; margin-bottom: 5px; text-transform: uppercase; width: 100%; }
-  .modal button:active { filter: brightness(0.8); }
-  .modal .close-btn { background: #333; margin-top: 5px; }
-  
-  #credits { position: absolute; bottom: 5px; width: 100%; text-align: center; font-size: 6px; color: #444; z-index: 60; pointer-events: none;}
-  #loading-screen { position: absolute; top:0; left:0; width: 100%; height: 100%; background: #000; z-index: 200; display: flex; justify-content: center; align-items: center; color: red; font-size: 10px; pointer-events: none; transition: opacity 1s; }
+  .modal input { background: #111; border: 1px solid #555; color: white; padding: 12px; margin-bottom: 10px; width: 100%; font-family: inherit; font-size: 10px; text-transform: uppercase;}
+  .modal button { background: var(--primary); color: white; padding: 12px; border: none; font-family: inherit; font-size: 10px; margin-bottom: 5px; cursor: pointer; width: 100%; }
+  .close-btn { background: #444 !important; }
+
+  @keyframes pulse { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
+  @keyframes blink { from { border-color: red; } to { border-color: transparent; } }
 </style>
 </head>
 <body>
@@ -55,17 +84,20 @@
   <canvas id="game"></canvas>
   <div class="scanline"></div>
   <div class="vignette"></div>
-  <div id="loading-screen">CARREGANDO DERRY...</div>
+  
+  <div id="loading-screen">
+    <div class="pulse">DERRY</div>
+    <div id="load-text" style="font-size: 8px; color: #666; margin-bottom: 20px;">INICIANDO...</div>
+    <button id="btn-force-start" class="start-btn" onclick="startGameManual()">TOCAR PARA FLUTUAR</button>
+  </div>
   
   <div id="ui-layer">
-    <div class="hud-top">
-      <span id="score-display">PTS: 0</span>
-      <span id="coin-display">$0</span>
-    </div>
+    <span id="score-display" class="hud-text" style="color:white">0</span>
+    <span id="coin-display" class="hud-text" style="color:#ffd700">$0</span>
   </div>
 
   <div id="modal-auth" class="modal">
-    <h2>LOGIN</h2>
+    <h2 style="font-family:'Creepster'; color:red;">LOGIN</h2>
     <input type="email" id="email" placeholder="E-MAIL">
     <input type="password" id="pass" placeholder="SENHA">
     <button onclick="window.gameAuth()">ENTRAR / CRIAR</button>
@@ -73,403 +105,390 @@
   </div>
 
   <div id="modal-nick" class="modal">
-    <h2>IDENTIDADE</h2>
-    <p style="font-size: 8px; margin-bottom: 10px; color: #ccc;">DIGITE SEU APELIDO:</p>
-    <input type="text" id="nickname-input" placeholder="SEU NICK (MAX 10)" maxlength="10">
-    <button onclick="window.handleNick()">SALVAR</button>
+    <h2 style="font-family:'Creepster'; color:red;">QUEM E VOCE?</h2>
+    <input type="text" id="nickname-input" placeholder="APELIDO" maxlength="10">
+    <button onclick="window.handleNick()">SALVAR ALMA</button>
   </div>
-
+  
   <div id="modal-redeem" class="modal">
-    <h2>CÓDIGO</h2>
-    <input type="text" id="redeem-code" placeholder="CÓDIGO SECRETO">
+    <h2 style="font-family:'Creepster'; color:cyan;">CODIGO</h2>
+    <input type="text" id="redeem-code" placeholder="DIGITE AQUI">
     <button onclick="window.handleRedeem()">RESGATAR</button>
     <button class="close-btn" onclick="window.closeModals()">FECHAR</button>
   </div>
-
-  <div id="credits">DEV: @CARLUZSNT</div>
 </div>
 
 <script>
-  // CONFIGURAÇÃO DO JOGO & VARIAVEIS GLOBAIS
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d", { alpha: false });
-  const GAME_W = 240; const GAME_H = 360;
-  
-  let SAVES = {
-    coins: parseInt(localStorage.getItem("coins")) || 0,
-    best: parseInt(localStorage.getItem("best")) || 0,
-    balloons: JSON.parse(localStorage.getItem("myBalloons")) || ["red"],
-    equipped: { balloon: localStorage.getItem("eqBalloon") || "red" },
-    usedCodes: JSON.parse(localStorage.getItem("usedCodes")) || [],
-    nick: localStorage.getItem("nick") || ""
-  };
+/** * SISTEMA DE SEGURANÇA CONTRA TRAVAMENTO 
+ * Se o Firebase falhar, o jogo inicia offline.
+ */
+const LoadingSys = {
+    screen: document.getElementById('loading-screen'),
+    btn: document.getElementById('btn-force-start'),
+    txt: document.getElementById('load-text'),
+    loaded: false,
+    
+    ready: function() {
+        if(this.loaded) return;
+        this.loaded = true;
+        this.txt.style.display = 'none';
+        this.btn.style.display = 'block'; // Mostra botão de iniciar
+    },
+    
+    force: function() {
+        // Remove a tela de loading com animação
+        Sound.init();
+        this.screen.style.opacity = 0;
+        setTimeout(() => this.screen.style.display = 'none', 500);
+        resetGame();
+        requestAnimationFrame(loop);
+    }
+};
 
-  const DB_ITEMS = [
+// Se demorar mais que 2.5s, libera o botão de jogar mesmo sem carregar tudo
+setTimeout(() => LoadingSys.ready(), 2500);
+window.startGameManual = () => LoadingSys.force();
+
+// --- CONFIGURAÇÃO DO JOGO ---
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d", { alpha: false });
+let GAME_W = 240, GAME_H = 360; // Resolução Lógica
+
+// Ajuste automático de tela
+function resize() {
+    const wrap = document.getElementById("game-wrapper");
+    const aspect = GAME_W / GAME_H;
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    
+    canvas.width = GAME_W;
+    canvas.height = GAME_H;
+    
+    // O canvas preenche o CSS, o context renderiza na resolução baixa (Pixel Art)
+    ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Estado Global
+let SAVES = {
+  coins: parseInt(localStorage.getItem("coins")) || 0,
+  best: parseInt(localStorage.getItem("best")) || 0,
+  balloons: JSON.parse(localStorage.getItem("myBalloons")) || ["red"],
+  equipped: localStorage.getItem("eqBalloon") || "red",
+  usedCodes: JSON.parse(localStorage.getItem("usedCodes")) || [],
+  nick: localStorage.getItem("nick") || ""
+};
+
+const ITEMS = [
     {id:"red", price:0, color:"#ff0000", name:"SANGUE"}, 
     {id:"blue", price:200, color:"#0088ff", name:"NOTURNO"}, 
-    {id:"green", price:500, color:"#00ff00", name:"TÓXICO"}, 
-    {id:"gold", price:1000, color:"#ffcc00", name:"PRECIOSO"}, 
-    {id:"dark", price:2500, color:"#4b0082", name:"TREVAS"},
+    {id:"green", price:500, color:"#00ff00", name:"TOXICO"}, 
+    {id:"gold", price:1000, color:"#ffcc00", name:"OURO"}, 
     {id:"neon", price:5000, color:"#00ffff", name:"LUZ"}
-  ];
+];
 
-  let state = "MENU"; 
-  let frames = 0, score = 0, speed = 2.5;
-  let entities = [], particles = [], rain = [];
-  let shake = 0;
-  let fbUser = null;
-  let leaderboardData = [];
-  
-  // PLAYER
-  const player = { x: 60, y: 150, vy: 0, w:16, h:24, animTimer: 0 };
+let state = "MENU"; 
+let frames = 0, score = 0, speed = 2.0;
+let entities = [], particles = [], rain = [];
+let shake = 0;
+let fbUser = null;
+let leaderboard = [];
 
-  // --- FIREBASE SETUP (MODO COMPATIVEL/SAFE) ---
-  let auth, db;
-  try {
+const player = { x: 60, y: 150, vy: 0, r: 8 };
+
+// --- FIREBASE (Tenta conectar, se falhar, segue offline) ---
+let db, auth;
+try {
     const firebaseConfig = {
-      apiKey: "AIzaSyAihGsa8MKG30r8aoj6tnMBuM9e-Bk5eEI",
-      authDomain: "vamos-flutuar.firebaseapp.com",
-      projectId: "vamos-flutuar",
-      storageBucket: "vamos-flutuar.firebasestorage.app",
-      messagingSenderId: "21354937126",
-      appId: "1:21354937126:web:3c2c46a9bb287e4d2c1fe7"
+        apiKey: "AIzaSyAihGsa8MKG30r8aoj6tnMBuM9e-Bk5eEI",
+        authDomain: "vamos-flutuar.firebaseapp.com",
+        projectId: "vamos-flutuar",
+        storageBucket: "vamos-flutuar.firebasestorage.app",
+        messagingSenderId: "21354937126",
+        appId: "1:21354937126:web:3c2c46a9bb287e4d2c1fe7"
     };
-    firebase.initializeApp(firebaseConfig);
-    auth = firebase.auth();
-    db = firebase.firestore();
-    
-    // Auth Listener
-    auth.onAuthStateChanged((user) => {
-        fbUser = user;
-        if(user) syncCloud();
-    });
-  } catch(e) {
-    console.warn("Firebase falhou (Offline ou Bloqueado):", e);
-    // Jogo continua funcionando offline
-  }
+    if(typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        auth.onAuthStateChanged(u => {
+            fbUser = u;
+            if(u) syncData();
+        });
+        LoadingSys.ready(); // Se conectar rápido, libera o jogo
+    } else {
+        console.log("Offline Mode");
+        LoadingSys.ready();
+    }
+} catch(e) { console.log("Erro Firebase:", e); LoadingSys.ready(); }
 
-  // --- FUNÇÕES DE INTERFACE ---
-  window.closeModals = function() {
-    document.querySelectorAll('.modal').forEach(m => m.style.display = "none");
-  }
-
-  window.saveDataLocal = function() {
+// --- FUNÇÕES DE DADOS ---
+window.saveLocal = () => {
     localStorage.setItem("coins", SAVES.coins);
     localStorage.setItem("best", SAVES.best);
     localStorage.setItem("myBalloons", JSON.stringify(SAVES.balloons));
-    localStorage.setItem("eqBalloon", SAVES.equipped.balloon);
+    localStorage.setItem("eqBalloon", SAVES.equipped);
     localStorage.setItem("usedCodes", JSON.stringify(SAVES.usedCodes));
     localStorage.setItem("nick", SAVES.nick);
-    
-    // Atualiza HUD
-    document.getElementById("score-display").innerText = `PTS: ${score}`;
-    document.getElementById("coin-display").innerText = `$${SAVES.coins}`;
-    
-    if(fbUser) saveToCloud();
-  }
+    updateHUD();
+    if(fbUser && db) syncCloud();
+};
 
-  // --- LÓGICA DE NUVEM ---
-  async function syncCloud() {
-    if (!db || !fbUser) return;
+function updateHUD() {
+    document.getElementById("score-display").innerText = score;
+    document.getElementById("coin-display").innerText = "$"+SAVES.coins;
+}
+
+function syncData() {
+    if(!db || !fbUser) return;
     const ref = db.collection("users").doc(fbUser.uid);
-    
-    ref.get().then((doc) => {
-      if (doc.exists) {
-        const data = doc.data();
-        SAVES.coins = Math.max(SAVES.coins, data.coins || 0);
-        SAVES.best = Math.max(SAVES.best, data.best || 0);
-        if(data.balloons) data.balloons.forEach(b => { if(!SAVES.balloons.includes(b)) SAVES.balloons.push(b); });
-        if(data.usedCodes) data.usedCodes.forEach(c => { if(!SAVES.usedCodes.includes(c)) SAVES.usedCodes.push(c); });
-        SAVES.nick = data.nick || "";
-        
-        window.saveDataLocal();
-        if (!SAVES.nick) document.getElementById("modal-nick").style.display = "flex";
-      } else {
-        ref.set({ 
-            coins: SAVES.coins, best: SAVES.best, balloons: SAVES.balloons, 
-            usedCodes: SAVES.usedCodes, email: fbUser.email, nick: "" 
-        }).then(() => {
-             document.getElementById("modal-nick").style.display = "flex";
-        });
-      }
-    });
-  }
-
-  async function saveToCloud() {
-      if(!db || !fbUser) return;
-      db.collection("users").doc(fbUser.uid).update({
-          coins: SAVES.coins, best: SAVES.best, balloons: SAVES.balloons,
-          usedCodes: SAVES.usedCodes, nick: SAVES.nick
-      });
-  }
-
-  // --- AÇÕES DO USUÁRIO ---
-  window.gameAuth = function() {
-      if(!auth) return alert("ERRO DE CONEXÃO");
-      const email = document.getElementById("email").value;
-      const pass = document.getElementById("pass").value;
-      
-      auth.signInWithEmailAndPassword(email, pass)
-      .then((res) => { window.closeModals(); alert("LOGIN OK!"); })
-      .catch((err) => {
-          auth.createUserWithEmailAndPassword(email, pass)
-          .then((res) => { window.closeModals(); alert("CONTA CRIADA!"); })
-          .catch((e) => alert("ERRO: " + e.message));
-      });
-  }
-
-  window.handleNick = function() {
-      const val = document.getElementById("nickname-input").value.toUpperCase().trim().substring(0,10);
-      if(val.length < 3) return alert("MINIMO 3 LETRAS");
-      SAVES.nick = val;
-      window.saveDataLocal();
-      window.closeModals();
-  }
-
-  window.handleRedeem = function() {
-    const code = document.getElementById("redeem-code").value.toUpperCase().trim();
-    if(SAVES.usedCodes.includes(code)) return alert("JÁ USADO!");
-    
-    let rw = 0;
-    if(code === "FLUTUAR") rw=500;
-    if(code === "DERRY") rw=1000;
-    if(code === "PENNYWISE") rw=2000;
-
-    if(rw > 0) {
-        SAVES.coins += rw;
-        SAVES.usedCodes.push(code);
-        window.saveDataLocal();
-        alert(`GANHOU ${rw} MOEDAS!`);
-        Sound.play("coin");
-        window.closeModals();
-    } else { alert("INVALIDO"); }
-  }
-
-  window.fetchLeaderboard = function() {
-      if(!db) return;
-      db.collection("users").orderBy("best", "desc").limit(10).get().then((snap) => {
-          leaderboardData = [];
-          snap.forEach(doc => {
-              const d = doc.data();
-              leaderboardData.push({name: d.nick || "ANONIMO", score: d.best});
-          });
-      });
-  }
-
-  // --- SISTEMA DE ÁUDIO (Web Audio API) ---
-  const Sound = (function() {
-    let ctx = null;
-    let muted = false;
-    function init() {
-        if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if(ctx.state === 'suspended') ctx.resume();
-    }
-    function playTone(freq, type, dur, vol=0.1) {
-        if(!ctx || muted) return;
-        const o = ctx.createOscillator(); const g = ctx.createGain();
-        o.type = type; o.frequency.value = freq;
-        g.gain.setValueAtTime(vol, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(); o.stop(ctx.currentTime + dur);
-    }
-    return {
-        init: init,
-        play: (t) => {
-            if(!ctx) return;
-            if(t==="jump") playTone(150, "square", 0.1);
-            if(t==="coin") { playTone(1200, "sine", 0.1); setTimeout(()=>playTone(1800,"sine",0.1), 50); }
-            if(t==="die") playTone(80, "sawtooth", 0.5, 0.2);
-            if(t==="select") playTone(400, "triangle", 0.05);
+    ref.get().then(doc => {
+        if(doc.exists) {
+            const d = doc.data();
+            SAVES.coins = Math.max(SAVES.coins, d.coins||0);
+            SAVES.best = Math.max(SAVES.best, d.best||0);
+            if(d.balloons) d.balloons.forEach(b => { if(!SAVES.balloons.includes(b)) SAVES.balloons.push(b); });
+            if(d.usedCodes) d.usedCodes.forEach(c => { if(!SAVES.usedCodes.includes(c)) SAVES.usedCodes.push(c); });
+            SAVES.nick = d.nick || "";
+            window.saveLocal();
+            if(!SAVES.nick) document.getElementById("modal-nick").style.display = "flex";
+        } else {
+            ref.set({ coins:SAVES.coins, best:SAVES.best, email:fbUser.email, nick:"" });
+            document.getElementById("modal-nick").style.display = "flex";
         }
-    };
-  })();
+    });
+}
 
-  // --- MOTOR GRÁFICO ---
-  function resize() {
-      const scale = Math.min(window.innerWidth/GAME_W, window.innerHeight/GAME_H);
-      const wr = document.getElementById("game-wrapper");
-      wr.style.width = (GAME_W*scale)+"px"; wr.style.height = (GAME_H*scale)+"px";
-      canvas.width = GAME_W; canvas.height = GAME_H;
-      ctx.imageSmoothingEnabled = false;
-  }
-  window.addEventListener('resize', resize); resize();
+function syncCloud() {
+    if(!db || !fbUser) return;
+    db.collection("users").doc(fbUser.uid).update({
+        coins: SAVES.coins, best: SAVES.best, balloons: SAVES.balloons,
+        usedCodes: SAVES.usedCodes, nick: SAVES.nick
+    });
+}
 
-  function resetGame() {
-      player.y = 150; player.vy = 0; score = 0; entities = []; frames = 0; speed = 2.5;
-  }
+// --- AUDIO (WEB AUDIO API - Gera sons na hora) ---
+const Sound = {
+    ctx: null,
+    init: function() {
+        if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if(this.ctx.state === 'suspended') this.ctx.resume();
+    },
+    play: function(type) {
+        if(!this.ctx) return;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.connect(g); g.connect(this.ctx.destination);
+        
+        const now = this.ctx.currentTime;
+        if(type === 'jump') {
+            o.type = 'square'; o.frequency.setValueAtTime(150, now); o.frequency.exponentialRampToValueAtTime(300, now+0.1);
+            g.gain.setValueAtTime(0.05, now); g.gain.linearRampToValueAtTime(0, now+0.1);
+            o.start(); o.stop(now+0.1);
+        } else if (type === 'coin') {
+            o.type = 'sine'; o.frequency.setValueAtTime(1200, now);
+            g.gain.setValueAtTime(0.05, now); g.gain.linearRampToValueAtTime(0, now+0.15);
+            o.start(); o.stop(now+0.15);
+        } else if (type === 'die') {
+            o.type = 'sawtooth'; o.frequency.setValueAtTime(100, now); o.frequency.linearRampToValueAtTime(20, now+0.3);
+            g.gain.setValueAtTime(0.1, now); g.gain.linearRampToValueAtTime(0, now+0.3);
+            o.start(); o.stop(now+0.3);
+        }
+    }
+};
 
-  function drawPlayer(x, y) {
-      const bob = Math.sin(frames/8)*2;
-      const tilt = player.vy * 0.1;
-      ctx.save(); ctx.translate(x+8, y+12+bob); ctx.rotate(tilt);
-      
-      // Roupa
-      ctx.fillStyle="#ddd"; ctx.fillRect(-6,2,12,10);
-      ctx.fillStyle="#d00"; ctx.fillRect(-1,4,2,2); ctx.fillRect(-1,8,2,2); // Botões
-      
-      // Cabeça
-      ctx.fillStyle="#fff"; ctx.fillRect(-6,-10,12,12);
-      ctx.fillStyle="#c00"; // Cabelo
-      ctx.beginPath(); ctx.moveTo(-6,-8); ctx.lineTo(-10,-12); ctx.lineTo(-7,-4); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(6,-8); ctx.lineTo(10,-12); ctx.lineTo(7,-4); ctx.fill();
-      
-      // Rosto
-      ctx.fillStyle="#d00"; ctx.fillRect(-1,-4,2,2); // Nariz
-      ctx.beginPath(); ctx.moveTo(-1,-4); ctx.lineTo(-1,-8); ctx.stroke(); // Linhas
-      ctx.beginPath(); ctx.moveTo(1,-4); ctx.lineTo(1,-8); ctx.stroke();
-      
-      // Olhos
-      ctx.fillStyle="#000"; ctx.fillRect(-4,-6,2,2); ctx.fillRect(2,-6,2,2);
-      
-      // Balão
-      const bColor = DB_ITEMS.find(b=>b.id===SAVES.equipped.balloon).color;
-      ctx.strokeStyle="#fff"; ctx.beginPath(); ctx.moveTo(4,4); ctx.lineTo(4,-25); ctx.stroke();
-      ctx.fillStyle=bColor; ctx.beginPath(); ctx.ellipse(4,-26,7,9,0,0,Math.PI*2); ctx.fill();
-      
-      ctx.restore();
-  }
+// --- LOGICA DO JOGO ---
+function resetGame() {
+    player.y = 150; player.vy = 0;
+    score = 0; entities = []; frames = 0; speed = 2;
+    particles = [];
+    updateHUD();
+}
 
-  function drawBg() {
-      // Céu gradiente
-      const grad = ctx.createLinearGradient(0,0,0,GAME_H);
-      grad.addColorStop(0, "#0a0a10"); grad.addColorStop(1, "#1a0505");
-      ctx.fillStyle = grad; ctx.fillRect(0,0,GAME_W,GAME_H);
-      
-      // Chuva
-      ctx.fillStyle = "rgba(100,100,150,0.3)";
-      if(rain.length < 40) rain.push({x:Math.random()*GAME_W, y:-10, v:4+Math.random()*4});
-      rain.forEach(r => { r.y+=r.v; ctx.fillRect(r.x,r.y,1,5); if(r.y>GAME_H) r.y=-10; });
-      
-      // Chão (Esgoto)
-      ctx.fillStyle="#1a0505"; ctx.fillRect(0,GAME_H-20,GAME_W,20);
-      let wave = Math.sin(frames/15)*4;
-      ctx.fillStyle="#2a0a0a"; ctx.fillRect(0,GAME_H-15+wave,GAME_W,15);
-  }
+function spawnParticles(x, y, color, amount) {
+    for(let i=0; i<amount; i++) {
+        particles.push({
+            x:x, y:y, 
+            vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, 
+            life:30, color:color
+        });
+    }
+}
 
-  function gameLoop() {
-      // 1. Limpeza e Input
-      if(shake>0) { 
-          ctx.save(); 
-          ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake); 
-          shake*=0.9; if(shake<0.5) { shake=0; ctx.restore(); }
-      }
-      
-      drawBg();
-      
-      // 2. Lógica por Estado
-      if(state === "GAME") {
-          player.vy += 0.22; // Gravidade
-          player.y += player.vy;
-          frames++; speed += 0.001;
-          
-          if(player.y > GAME_H-30 || player.y < -40) gameOver();
-          
-          // Spawns
-          if(frames%90===0 && Math.random()>0.6) entities.push({type:"coin", x:GAME_W+20, y:40+Math.random()*200});
-          if(frames%120===0) entities.push({type:"saw", x:GAME_W+20, y:40+Math.random()*(GAME_H-100), angle:0});
-          
-          // Entidades
-          for(let i=entities.length-1; i>=0; i--) {
-              let e = entities[i]; e.x -= speed;
-              if(e.type==="saw") {
-                  e.angle+=0.2;
-                  ctx.save(); ctx.translate(e.x+12,e.y+12); ctx.rotate(e.angle);
-                  ctx.fillStyle="#666"; ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.fill();
-                  ctx.fillStyle="#999"; for(let j=0;j<8;j++){ ctx.rotate(0.785); ctx.fillRect(-2,-14,4,6); }
-                  ctx.restore();
-                  
-                  // Colisão Serra
-                  if(Math.abs((player.x+8)-(e.x+12))<16 && Math.abs((player.y+12)-(e.y+12))<16) gameOver();
-              } else {
-                  // Coin
-                  ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.arc(e.x+8,e.y+8,6,0,Math.PI*2); ctx.fill();
-                  ctx.fillStyle="#fff"; ctx.font="8px Arial"; ctx.fillText("$",e.x+6,e.y+11);
-                  // Colisão Coin
-                  if(Math.abs((player.x+8)-(e.x+8))<14 && Math.abs((player.y+12)-(e.y+8))<14) {
-                      score++; SAVES.coins++; Sound.play("coin"); entities.splice(i,1);
-                      window.saveDataLocal();
-                  }
-              }
-              if(e.x < -30) entities.splice(i,1);
-          }
-          drawPlayer(player.x, player.y);
-      
-      } else if(state === "MENU") {
-          drawPlayer(GAME_W/2-8, 100);
-          ctx.textAlign="center"; 
-          ctx.font="24px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("VAMOS FLUTUAR", GAME_W/2, 60);
-          
-          const btn = (t,y,c) => { 
-              ctx.fillStyle="#111"; ctx.fillRect(40,y,160,25); 
-              ctx.strokeStyle=c; ctx.strokeRect(40,y,160,25);
-              ctx.fillStyle="#fff"; ctx.font="8px 'Press Start 2P'"; ctx.fillText(t,GAME_W/2,y+16);
-          };
-          btn("JOGAR", 150, "red");
-          btn("LOJA", 190, "yellow");
-          btn("RANKING", 230, "cyan");
-          btn(fbUser ? (SAVES.nick||"CONTA OK") : "LOGIN", 270, fbUser?"#0f0":"#666");
-          btn("CÓDIGO", 310, "magenta");
+function update() {
+    if(shake > 0) {
+        let mag = shake;
+        ctx.save();
+        ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
+        shake *= 0.9;
+        if(shake < 0.5) { shake = 0; ctx.restore(); }
+    }
 
-      } else if(state === "SHOP") {
-          ctx.textAlign="center"; ctx.font="16px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("LOJA", GAME_W/2, 40);
-          DB_ITEMS.forEach((it, i) => {
-             let y = 60 + i*40;
-             let has = SAVES.balloons.includes(it.id);
-             let eq = SAVES.equipped.balloon === it.id;
-             ctx.fillStyle="#222"; ctx.fillRect(10,y,220,35);
-             ctx.strokeStyle = eq ? "#0f0" : (has?"#666":"#f00"); ctx.strokeRect(10,y,220,35);
-             
-             ctx.fillStyle=it.color; ctx.beginPath(); ctx.arc(30,y+17,8,0,Math.PI*2); ctx.fill();
-             ctx.fillStyle="white"; ctx.font="8px 'Press Start 2P'"; ctx.textAlign="left"; ctx.fillText(it.name, 50,y+22);
-             ctx.textAlign="right"; ctx.fillStyle = eq?"#0f0":(has?"#aaa":"gold");
-             ctx.fillText(eq?"USANDO":(has?"EQUIPAR":"$"+it.price), 220,y+22);
-          });
-          ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
-      
-      } else if(state === "LEADERBOARD") {
-          ctx.textAlign="center"; ctx.font="16px 'Creepster'"; ctx.fillStyle="cyan"; ctx.fillText("LENDAS", GAME_W/2, 40);
-          if(leaderboardData.length===0) ctx.fillText("CARREGANDO...", GAME_W/2, 150);
-          
-          leaderboardData.forEach((d,i) => {
-              ctx.textAlign="left"; ctx.fillStyle = i===0?"gold":"white";
-              ctx.font="8px 'Press Start 2P'"; 
-              ctx.fillText(`${i+1}. ${d.name}`, 30, 80+i*20);
-              ctx.textAlign="right"; ctx.fillText(d.score, 210, 80+i*20);
-          });
-          ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
+    // BG - Chuva
+    if(frames%2===0 && rain.length < 50) rain.push({x:Math.random()*GAME_W, y:-10, v:4+Math.random()*2});
+    ctx.fillStyle = "#000"; ctx.fillRect(0,0,GAME_W,GAME_H); // Limpa tela
+    
+    // Desenha Chuva
+    ctx.fillStyle = "rgba(100,100,150,0.4)";
+    rain.forEach(r => { r.y+=r.v; ctx.fillRect(r.x,r.y,1,4); if(r.y>GAME_H) r.y=-10; });
+    
+    // Particulas
+    for(let i=particles.length-1; i>=0; i--) {
+        let p = particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--;
+        ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 2, 2);
+        if(p.life<=0) particles.splice(i,1);
+    }
 
-      } else if(state === "GAMEOVER") {
-          ctx.fillStyle="rgba(0,0,0,0.7)"; ctx.fillRect(0,0,GAME_W,GAME_H);
-          ctx.textAlign="center"; ctx.fillStyle="red"; ctx.font="24px 'Creepster'";
-          ctx.fillText("VOCÊ MORREU", GAME_W/2, 140);
-          ctx.fillStyle="white"; ctx.font="10px 'Press Start 2P'";
-          ctx.fillText(`PONTOS: ${score}`, GAME_W/2, 170);
-          ctx.font="8px 'Press Start 2P'"; ctx.fillStyle="#aaa";
-          ctx.fillText("TOQUE PARA VOLTAR", GAME_W/2, 220);
-      }
+    if(state === "GAME") {
+        player.vy += 0.25; // Gravidade
+        player.y += player.vy;
+        speed += 0.001; frames++;
+        
+        if(player.y > GAME_H-20 || player.y < -20) gameOver();
+        
+        // Spawns
+        if(frames%100===0) {
+            // Obstaculo ou Moeda
+            let type = Math.random() > 0.3 ? "saw" : "coin";
+            let y = 30 + Math.random() * (GAME_H - 80);
+            entities.push({x:GAME_W+20, y:y, type:type, r: type==="saw"?10:6});
+        }
+        
+        // Entidades
+        for(let i=entities.length-1; i>=0; i--) {
+            let e = entities[i]; e.x -= speed;
+            
+            // Desenho e Colisão
+            let dx = (player.x) - e.x;
+            let dy = (player.y+10) - e.y; // Ajuste centro
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            
+            if(e.type === "saw") {
+                ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(frames*0.1);
+                ctx.fillStyle="#666"; ctx.beginPath(); ctx.arc(0,0,10,0,6.28); ctx.fill();
+                ctx.fillStyle="#aaa"; ctx.fillRect(-12,-2,24,4); ctx.fillRect(-2,-12,4,24);
+                ctx.restore();
+                if(dist < 18) gameOver();
+            } else {
+                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.arc(e.x,e.y,6,0,6.28); ctx.fill();
+                ctx.fillStyle="#fff"; ctx.font="8px Arial"; ctx.fillText("$", e.x-2, e.y+3);
+                if(dist < 16) {
+                    score++; SAVES.coins++; Sound.play("coin");
+                    spawnParticles(e.x, e.y, "gold", 5);
+                    entities.splice(i,1); updateHUD();
+                }
+            }
+            if(e.x < -20) entities.splice(i,1);
+        }
+        
+        drawPlayer();
+    
+    } else if (state === "MENU") {
+        drawPlayer();
+        ctx.textAlign="center";
+        ctx.font="26px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("VAMOS FLUTUAR", GAME_W/2, 60);
+        
+        drawBtn("JOGAR", 140, "red");
+        drawBtn("LOJA", 180, "gold");
+        drawBtn("RANKING", 220, "cyan");
+        drawBtn(fbUser ? (SAVES.nick||"CONTA OK") : "LOGIN / SAVE", 260, fbUser?"#0f0":"#888");
+        drawBtn("CODIGO", 300, "magenta");
+        
+    } else if (state === "GAMEOVER") {
+        ctx.fillStyle="rgba(0,0,0,0.7)"; ctx.fillRect(0,0,GAME_W,GAME_H);
+        ctx.textAlign="center"; 
+        ctx.font="24px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("VOCE FLUTUOU", GAME_W/2, 130);
+        ctx.font="10px 'Press Start 2P'"; ctx.fillStyle="white"; ctx.fillText("PONTOS: "+score, GAME_W/2, 160);
+        if(score>=SAVES.best && score>0) { ctx.fillStyle="gold"; ctx.fillText("NOVO RECORDE!", GAME_W/2, 180); }
+        ctx.fillStyle="#888"; ctx.font="8px 'Press Start 2P'"; ctx.fillText("TOQUE PARA VOLTAR", GAME_W/2, 250);
+    
+    } else if (state === "SHOP") {
+        ctx.textAlign="center"; ctx.fillStyle="red"; ctx.font="16px 'Creepster'"; ctx.fillText("LOJA MACABRA", GAME_W/2, 30);
+        ITEMS.forEach((it, i) => {
+            let y = 50 + i*45;
+            let has = SAVES.balloons.includes(it.id);
+            let eq = SAVES.equipped === it.id;
+            ctx.fillStyle="#111"; ctx.fillRect(10,y,220,40);
+            ctx.strokeStyle = eq ? "#0f0" : (has?"#555":"#f00"); ctx.strokeRect(10,y,220,40);
+            
+            ctx.fillStyle=it.color; ctx.beginPath(); ctx.arc(30,y+20,8,0,6.28); ctx.fill();
+            ctx.fillStyle="white"; ctx.textAlign="left"; ctx.font="8px 'Press Start 2P'"; ctx.fillText(it.name, 50, y+24);
+            
+            ctx.textAlign="right"; ctx.fillStyle = eq?"#0f0":(has?"#aaa":"gold");
+            ctx.fillText(eq?"USANDO":(has?"EQUIPAR":it.price), 220, y+24);
+        });
+        ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
+    } else if (state === "LEADERBOARD") {
+        ctx.textAlign="center"; ctx.fillStyle="cyan"; ctx.font="16px 'Creepster'"; ctx.fillText("LENDAS", GAME_W/2, 30);
+        if(leaderboard.length === 0) ctx.fillText("CARREGANDO...", GAME_W/2, 150);
+        leaderboard.forEach((d, i) => {
+            ctx.textAlign="left"; ctx.font="8px 'Press Start 2P'"; ctx.fillStyle=i===0?"gold":"white";
+            ctx.fillText((i+1)+". "+d.name, 20, 60+i*25);
+            ctx.textAlign="right"; ctx.fillText(d.score, 220, 60+i*25);
+        });
+        ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
+    }
 
-      // Restaura shake
-      if(shake>0 && shake<0.5) ctx.restore();
-      requestAnimationFrame(gameLoop);
-  }
+    if(shake > 0 && shake < 0.5) ctx.restore(); // Fecha shake se ainda existir
+}
 
-  function gameOver() {
-      shake = 10; Sound.play("die");
-      if(score > SAVES.best) SAVES.best = score;
-      window.saveDataLocal();
-      state = "GAMEOVER";
-  }
+function drawPlayer() {
+    let y = player.y; let x = player.x;
+    if(state === "MENU") { y = 100; x = GAME_W/2 - 5; }
+    
+    ctx.save(); ctx.translate(x, y);
+    // Corda
+    ctx.strokeStyle="white"; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-25); ctx.stroke();
+    // Balão
+    let bColor = ITEMS.find(b=>b.id===SAVES.equipped).color;
+    ctx.fillStyle=bColor; ctx.beginPath(); ctx.ellipse(0,-25, 7, 9, 0, 0, 6.28); ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.beginPath(); ctx.ellipse(2,-27, 2, 3, 0, 0, 6.28); ctx.fill();
+    // Corpo
+    ctx.fillStyle="#ddd"; ctx.fillRect(-5,0,10,12);
+    ctx.fillStyle="#d00"; ctx.fillRect(-1,2,2,2); ctx.fillRect(-1,6,2,2); // Botoes
+    // Rosto
+    ctx.fillStyle="white"; ctx.fillRect(-5,-10,10,10);
+    ctx.fillStyle="#c00"; // Cabelo
+    ctx.beginPath(); ctx.moveTo(-5,-8); ctx.lineTo(-9,-10); ctx.lineTo(-6,-4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5,-8); ctx.lineTo(9,-10); ctx.lineTo(6,-4); ctx.fill();
+    // Make
+    ctx.fillStyle="#d00"; ctx.fillRect(-1,-4,2,2); // Nariz
+    ctx.beginPath(); ctx.moveTo(-1,-4); ctx.lineTo(-1,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1,-4); ctx.lineTo(1,-8); ctx.stroke();
+    ctx.restore();
+}
 
-  // --- CONTROLES ---
-  function interact(e) {
-      if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-      e.preventDefault();
-      Sound.init(); 
+function drawBtn(text, y, color) {
+    ctx.fillStyle="#111"; ctx.fillRect(40, y, 160, 25);
+    ctx.strokeStyle=color; ctx.strokeRect(40, y, 160, 25);
+    ctx.fillStyle="white"; ctx.font="8px 'Press Start 2P'"; ctx.fillText(text, GAME_W/2, y+16);
+}
 
-      const r = canvas.getBoundingClientRect(); 
-      const t = (e.touches && e.touches[0]) || e;
-      const gx = (t.clientX - r.left) * (GAME_W / r.width); 
-      const gy = (t.clientY - r.top) * (GAME_H / r.height);
+function gameOver() {
+    shake = 10; Sound.play("die");
+    spawnParticles(player.x, player.y, "#d00", 20);
+    if(score > SAVES.best) SAVES.best = score;
+    window.saveLocal();
+    state = "GAMEOVER";
+}
 
-  
+// --- CONTROLES UNIFICADOS ---
+function input(e) {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    e.preventDefault();
+    e.stopPropagation();
+    Sound.init();
+
+    const rect = canvas.getBoundingClientRect();
+    const t = (e.touches && e.touches[0]) || e;
+    const x = (t.clientX - rect.left) * (GAME_W / rect.width);
+    const y = (t.clientY - rect.top) * (GAME_H / rect.height);
+
+    if(state === "MENU") {
+        if(y>140 && y<165) { state="GAME"; resetGame(); Sound.play("jump"); }
+        else if(y>180 && y<205) { state="SHOP"; Sound.play("jump"); }
+        else if(y>220 && y<245) { 
+            state="LEADERBOARD"; 
+            if(db) db.collection("users").orderBy("best","desc").limit(10).get().then(s=>{
+                leaderboard=[]; s.forEach(d=>leaderboard.push({name:d.data().nick||"SEM NOME", score:
