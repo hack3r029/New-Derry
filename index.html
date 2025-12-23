@@ -3,492 +3,255 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>IT: O JOGO 🎈</title>
+<title>VAMOS FLUTUAR 🎈</title>
 <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap" rel="stylesheet">
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
-  :root { --primary: #ff0000; --bg: #05000a; }
-  * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
-  
-  html, body { 
-    margin: 0; height: 100%; 
-    background-color: var(--bg); 
-    display: flex; justify-content: center; align-items: center; 
-    overflow: hidden; 
-    font-family: 'Press Start 2P', monospace; 
-    color: white; 
-  }
-  
-  #game-wrapper { 
-    position: relative; 
-    box-shadow: 0 0 50px rgba(180, 0, 0, 0.3); 
-    border: 2px solid #222; 
-    background: #000; 
-    width: 100%; max-width: 400px; height: 100%; max-height: 800px;
-    overflow: hidden;
-  }
-  
-  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
-  
-  /* Efeitos CRT (Retrô) */
-  .scanline { 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%); 
-    background-size: 100% 4px; pointer-events: none; z-index: 50; 
-  }
-  .vignette { 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    box-shadow: inset 0 0 100px rgba(0,0,0,0.8); pointer-events: none; z-index: 51; 
-  }
-
-  /* UI */
-  #ui-layer { position: absolute; top: 10px; left: 10px; right: 10px; pointer-events: none; z-index: 40; display: flex; justify-content: space-between; }
-  .hud-text { font-size: 10px; text-shadow: 2px 2px 0 #000; }
-  
-  /* Loading & Start Screen */
-  #loading-screen { 
-    position: absolute; top:0; left:0; width: 100%; height: 100%; 
-    background: #000; z-index: 200; 
-    display: flex; flex-direction: column; justify-content: center; align-items: center; 
-    transition: opacity 0.5s;
-  }
-  .pulse { animation: pulse 1s infinite alternate; color: red; font-family: 'Creepster'; font-size: 30px; margin-bottom: 20px;}
-  .start-btn { 
-    background: transparent; border: 2px solid red; color: white; padding: 15px; 
-    font-family: 'Press Start 2P'; font-size: 10px; cursor: pointer; display: none; 
-    animation: blink 0.5s infinite alternate;
-  }
-  
-  /* Modals */
-  .modal {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 80%; background: rgba(20, 0, 0, 0.95); border: 2px solid var(--primary); padding: 20px;
-    display: none; flex-direction: column; z-index: 100; box-shadow: 0 0 30px rgba(255,0,0,0.4);
-    text-align: center; border-radius: 8px;
-  }
-  .modal input { background: #111; border: 1px solid #555; color: white; padding: 12px; margin-bottom: 10px; width: 100%; font-family: inherit; font-size: 10px; text-transform: uppercase;}
-  .modal button { background: var(--primary); color: white; padding: 12px; border: none; font-family: inherit; font-size: 10px; margin-bottom: 5px; cursor: pointer; width: 100%; }
-  .close-btn { background: #444 !important; }
-
-  @keyframes pulse { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
-  @keyframes blink { from { border-color: red; } to { border-color: transparent; } }
+    * { box-sizing: border-box; touch-action: none; user-select: none; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Press Start 2P', cursive; }
+    #canvas-container { position: relative; width: 100vw; height: 100vh; max-width: 400px; max-height: 700px; border: 2px solid #333; }
+    canvas { width: 100%; height: 100%; background: #050005; image-rendering: pixelated; }
+    
+    /* HUD */
+    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; color: white; font-size: 10px; pointer-events: none; z-index: 10; }
+    
+    /* TELA DE INICIO (OVERLAY) */
+    #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; text-align: center; }
+    .title { font-family: 'Creepster', serif; color: red; font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 10px red; }
+    .btn-start { background: red; color: white; border: none; padding: 15px 30px; font-family: 'Press Start 2P'; font-size: 12px; cursor: pointer; border-radius: 5px; }
+    
+    /* LOJA */
+    #shop-ui { position: absolute; inset: 0; background: #000; display: none; flex-direction: column; padding: 20px; z-index: 30; color: white; overflow-y: auto; }
 </style>
 </head>
 <body>
 
-<div id="game-wrapper">
-  <canvas id="game"></canvas>
-  <div class="scanline"></div>
-  <div class="vignette"></div>
-  
-  <div id="loading-screen">
-    <div class="pulse">DERRY</div>
-    <div id="load-text" style="font-size: 8px; color: #666; margin-bottom: 20px;">INICIANDO...</div>
-    <button id="btn-force-start" class="start-btn" onclick="startGameManual()">TOCAR PARA FLUTUAR</button>
-  </div>
-  
-  <div id="ui-layer">
-    <span id="score-display" class="hud-text" style="color:white">0</span>
-    <span id="coin-display" class="hud-text" style="color:#ffd700">$0</span>
-  </div>
+<div id="canvas-container">
+    <div id="hud">
+        <div id="score">0</div>
+        <div id="coins" style="color: gold;">$0</div>
+    </div>
 
-  <div id="modal-auth" class="modal">
-    <h2 style="font-family:'Creepster'; color:red;">LOGIN</h2>
-    <input type="email" id="email" placeholder="E-MAIL">
-    <input type="password" id="pass" placeholder="SENHA">
-    <button onclick="window.gameAuth()">ENTRAR / CRIAR</button>
-    <button class="close-btn" onclick="window.closeModals()">FECHAR</button>
-  </div>
+    <div id="overlay">
+        <div class="title">IT: FLUTUAR</div>
+        <button class="btn-start" onclick="startGame()">JOGAR</button>
+        <p style="color: #666; font-size: 8px; margin-top: 20px;">TOQUE PARA SUBIR</p>
+        <button onclick="toggleShop(true)" style="background:none; border:1px solid #444; color:#aaa; font-size:8px; padding:10px; margin-top:20px;">LOJA</button>
+    </div>
 
-  <div id="modal-nick" class="modal">
-    <h2 style="font-family:'Creepster'; color:red;">QUEM E VOCE?</h2>
-    <input type="text" id="nickname-input" placeholder="APELIDO" maxlength="10">
-    <button onclick="window.handleNick()">SALVAR ALMA</button>
-  </div>
-  
-  <div id="modal-redeem" class="modal">
-    <h2 style="font-family:'Creepster'; color:cyan;">CODIGO</h2>
-    <input type="text" id="redeem-code" placeholder="DIGITE AQUI">
-    <button onclick="window.handleRedeem()">RESGATAR</button>
-    <button class="close-btn" onclick="window.closeModals()">FECHAR</button>
-  </div>
+    <div id="shop-ui">
+        <h2 style="color:red; font-family:'Creepster'; text-align:center;">LOJA</h2>
+        <div id="shop-items"></div>
+        <button onclick="toggleShop(false)" style="margin-top:20px; padding:10px; background:#333; color:white; border:none; font-family:inherit;">VOLTAR</button>
+    </div>
+
+    <canvas id="game"></canvas>
 </div>
 
 <script>
-/** * SISTEMA DE SEGURANÇA CONTRA TRAVAMENTO 
- * Se o Firebase falhar, o jogo inicia offline.
- */
-const LoadingSys = {
-    screen: document.getElementById('loading-screen'),
-    btn: document.getElementById('btn-force-start'),
-    txt: document.getElementById('load-text'),
-    loaded: false,
-    
-    ready: function() {
-        if(this.loaded) return;
-        this.loaded = true;
-        this.txt.style.display = 'none';
-        this.btn.style.display = 'block'; // Mostra botão de iniciar
-    },
-    
-    force: function() {
-        // Remove a tela de loading com animação
-        Sound.init();
-        this.screen.style.opacity = 0;
-        setTimeout(() => this.screen.style.display = 'none', 500);
-        resetGame();
-        requestAnimationFrame(loop);
-    }
-};
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const hudScore = document.getElementById('score');
+const hudCoins = document.getElementById('coins');
 
-// Se demorar mais que 2.5s, libera o botão de jogar mesmo sem carregar tudo
-setTimeout(() => LoadingSys.ready(), 2500);
-window.startGameManual = () => LoadingSys.force();
+// Configuração fixa para evitar erros de renderização
+canvas.width = 320;
+canvas.height = 480;
 
-// --- CONFIGURAÇÃO DO JOGO ---
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d", { alpha: false });
-let GAME_W = 240, GAME_H = 360; // Resolução Lógica
+let gameActive = false;
+let score = 0;
+let coins = parseInt(localStorage.getItem('it_coins')) || 0;
+let speed = 2;
+let frames = 0;
 
-// Ajuste automático de tela
-function resize() {
-    const wrap = document.getElementById("game-wrapper");
-    const aspect = GAME_W / GAME_H;
-    const w = wrap.clientWidth;
-    const h = wrap.clientHeight;
-    
-    canvas.width = GAME_W;
-    canvas.height = GAME_H;
-    
-    // O canvas preenche o CSS, o context renderiza na resolução baixa (Pixel Art)
-    ctx.imageSmoothingEnabled = false;
-}
-window.addEventListener('resize', resize);
-resize();
+// Player
+const player = { x: 50, y: 200, vy: 0, w: 20, h: 30 };
 
-// Estado Global
-let SAVES = {
-  coins: parseInt(localStorage.getItem("coins")) || 0,
-  best: parseInt(localStorage.getItem("best")) || 0,
-  balloons: JSON.parse(localStorage.getItem("myBalloons")) || ["red"],
-  equipped: localStorage.getItem("eqBalloon") || "red",
-  usedCodes: JSON.parse(localStorage.getItem("usedCodes")) || [],
-  nick: localStorage.getItem("nick") || ""
-};
+// Entidades
+let obstacles = [];
+let pickups = [];
 
-const ITEMS = [
-    {id:"red", price:0, color:"#ff0000", name:"SANGUE"}, 
-    {id:"blue", price:200, color:"#0088ff", name:"NOTURNO"}, 
-    {id:"green", price:500, color:"#00ff00", name:"TOXICO"}, 
-    {id:"gold", price:1000, color:"#ffcc00", name:"OURO"}, 
-    {id:"neon", price:5000, color:"#00ffff", name:"LUZ"}
+// Cores de Balão (Loja)
+let ownedBalloons = JSON.parse(localStorage.getItem('it_balloons')) || ['#ff0000'];
+let currentBalloon = localStorage.getItem('it_current') || '#ff0000';
+
+const shopData = [
+    { name: 'SANGUE', color: '#ff0000', price: 0 },
+    { name: 'AZUL', color: '#0000ff', price: 100 },
+    { name: 'VERDE', color: '#00ff00', price: 250 },
+    { name: 'DOURADO', color: '#ffd700', price: 500 },
+    { name: 'NEON', color: '#ff00ff', price: 1000 }
 ];
 
-let state = "MENU"; 
-let frames = 0, score = 0, speed = 2.0;
-let entities = [], particles = [], rain = [];
-let shake = 0;
-let fbUser = null;
-let leaderboard = [];
-
-const player = { x: 60, y: 150, vy: 0, r: 8 };
-
-// --- FIREBASE (Tenta conectar, se falhar, segue offline) ---
-let db, auth;
-try {
-    const firebaseConfig = {
-        apiKey: "AIzaSyAihGsa8MKG30r8aoj6tnMBuM9e-Bk5eEI",
-        authDomain: "vamos-flutuar.firebaseapp.com",
-        projectId: "vamos-flutuar",
-        storageBucket: "vamos-flutuar.firebasestorage.app",
-        messagingSenderId: "21354937126",
-        appId: "1:21354937126:web:3c2c46a9bb287e4d2c1fe7"
-    };
-    if(typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        auth = firebase.auth();
-        db = firebase.firestore();
-        auth.onAuthStateChanged(u => {
-            fbUser = u;
-            if(u) syncData();
-        });
-        LoadingSys.ready(); // Se conectar rápido, libera o jogo
-    } else {
-        console.log("Offline Mode");
-        LoadingSys.ready();
-    }
-} catch(e) { console.log("Erro Firebase:", e); LoadingSys.ready(); }
-
-// --- FUNÇÕES DE DADOS ---
-window.saveLocal = () => {
-    localStorage.setItem("coins", SAVES.coins);
-    localStorage.setItem("best", SAVES.best);
-    localStorage.setItem("myBalloons", JSON.stringify(SAVES.balloons));
-    localStorage.setItem("eqBalloon", SAVES.equipped);
-    localStorage.setItem("usedCodes", JSON.stringify(SAVES.usedCodes));
-    localStorage.setItem("nick", SAVES.nick);
-    updateHUD();
-    if(fbUser && db) syncCloud();
-};
-
-function updateHUD() {
-    document.getElementById("score-display").innerText = score;
-    document.getElementById("coin-display").innerText = "$"+SAVES.coins;
+function save() {
+    localStorage.setItem('it_coins', coins);
+    localStorage.setItem('it_balloons', JSON.stringify(ownedBalloons));
+    localStorage.setItem('it_current', currentBalloon);
+    hudCoins.innerText = '$' + coins;
 }
 
-function syncData() {
-    if(!db || !fbUser) return;
-    const ref = db.collection("users").doc(fbUser.uid);
-    ref.get().then(doc => {
-        if(doc.exists) {
-            const d = doc.data();
-            SAVES.coins = Math.max(SAVES.coins, d.coins||0);
-            SAVES.best = Math.max(SAVES.best, d.best||0);
-            if(d.balloons) d.balloons.forEach(b => { if(!SAVES.balloons.includes(b)) SAVES.balloons.push(b); });
-            if(d.usedCodes) d.usedCodes.forEach(c => { if(!SAVES.usedCodes.includes(c)) SAVES.usedCodes.push(c); });
-            SAVES.nick = d.nick || "";
-            window.saveLocal();
-            if(!SAVES.nick) document.getElementById("modal-nick").style.display = "flex";
-        } else {
-            ref.set({ coins:SAVES.coins, best:SAVES.best, email:fbUser.email, nick:"" });
-            document.getElementById("modal-nick").style.display = "flex";
-        }
-    });
+function startGame() {
+    document.getElementById('overlay').style.display = 'none';
+    resetGame();
+    gameActive = true;
 }
 
-function syncCloud() {
-    if(!db || !fbUser) return;
-    db.collection("users").doc(fbUser.uid).update({
-        coins: SAVES.coins, best: SAVES.best, balloons: SAVES.balloons,
-        usedCodes: SAVES.usedCodes, nick: SAVES.nick
-    });
-}
-
-// --- AUDIO (WEB AUDIO API - Gera sons na hora) ---
-const Sound = {
-    ctx: null,
-    init: function() {
-        if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if(this.ctx.state === 'suspended') this.ctx.resume();
-    },
-    play: function(type) {
-        if(!this.ctx) return;
-        const o = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        o.connect(g); g.connect(this.ctx.destination);
-        
-        const now = this.ctx.currentTime;
-        if(type === 'jump') {
-            o.type = 'square'; o.frequency.setValueAtTime(150, now); o.frequency.exponentialRampToValueAtTime(300, now+0.1);
-            g.gain.setValueAtTime(0.05, now); g.gain.linearRampToValueAtTime(0, now+0.1);
-            o.start(); o.stop(now+0.1);
-        } else if (type === 'coin') {
-            o.type = 'sine'; o.frequency.setValueAtTime(1200, now);
-            g.gain.setValueAtTime(0.05, now); g.gain.linearRampToValueAtTime(0, now+0.15);
-            o.start(); o.stop(now+0.15);
-        } else if (type === 'die') {
-            o.type = 'sawtooth'; o.frequency.setValueAtTime(100, now); o.frequency.linearRampToValueAtTime(20, now+0.3);
-            g.gain.setValueAtTime(0.1, now); g.gain.linearRampToValueAtTime(0, now+0.3);
-            o.start(); o.stop(now+0.3);
-        }
-    }
-};
-
-// --- LOGICA DO JOGO ---
 function resetGame() {
-    player.y = 150; player.vy = 0;
-    score = 0; entities = []; frames = 0; speed = 2;
-    particles = [];
-    updateHUD();
+    player.y = 200;
+    player.vy = 0;
+    score = 0;
+    speed = 2.5;
+    obstacles = [];
+    pickups = [];
+    frames = 0;
+    hudScore.innerText = '0';
+    save();
 }
 
-function spawnParticles(x, y, color, amount) {
-    for(let i=0; i<amount; i++) {
-        particles.push({
-            x:x, y:y, 
-            vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, 
-            life:30, color:color
-        });
+function toggleShop(open) {
+    const ui = document.getElementById('shop-ui');
+    ui.style.display = open ? 'flex' : 'none';
+    if(open) renderShop();
+}
+
+function renderShop() {
+    const container = document.getElementById('shop-items');
+    container.innerHTML = '';
+    shopData.forEach(item => {
+        const div = document.createElement('div');
+        div.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #222;";
+        const isOwned = ownedBalloons.includes(item.color);
+        const isCurrent = currentBalloon === item.color;
+        
+        div.innerHTML = `
+            <div style="display:flex; align-items:center;">
+                <div style="width:15px; height:15px; background:${item.color}; border-radius:50%; margin-right:10px;"></div>
+                <span style="font-size:8px;">${item.name}</span>
+            </div>
+            <button onclick="buyItem('${item.color}', ${item.price})" style="font-size:8px; padding:5px; background:${isCurrent?'#0f0':(isOwned?'#444':'red')}; color:white; border:none;">
+                ${isCurrent ? 'USANDO' : (isOwned ? 'EQUIPAR' : '$'+item.price)}
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function buyItem(color, price) {
+    if(ownedBalloons.includes(color)) {
+        currentBalloon = color;
+    } else if(coins >= price) {
+        coins -= price;
+        ownedBalloons.push(color);
+        currentBalloon = color;
+    } else {
+        alert("MOEDAS INSUFICIENTES!");
     }
+    save();
+    renderShop();
 }
 
-function update() {
-    if(shake > 0) {
-        let mag = shake;
-        ctx.save();
-        ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
-        shake *= 0.9;
-        if(shake < 0.5) { shake = 0; ctx.restore(); }
-    }
-
-    // BG - Chuva
-    if(frames%2===0 && rain.length < 50) rain.push({x:Math.random()*GAME_W, y:-10, v:4+Math.random()*2});
-    ctx.fillStyle = "#000"; ctx.fillRect(0,0,GAME_W,GAME_H); // Limpa tela
-    
-    // Desenha Chuva
-    ctx.fillStyle = "rgba(100,100,150,0.4)";
-    rain.forEach(r => { r.y+=r.v; ctx.fillRect(r.x,r.y,1,4); if(r.y>GAME_H) r.y=-10; });
-    
-    // Particulas
-    for(let i=particles.length-1; i>=0; i--) {
-        let p = particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--;
-        ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 2, 2);
-        if(p.life<=0) particles.splice(i,1);
-    }
-
-    if(state === "GAME") {
-        player.vy += 0.25; // Gravidade
-        player.y += player.vy;
-        speed += 0.001; frames++;
-        
-        if(player.y > GAME_H-20 || player.y < -20) gameOver();
-        
-        // Spawns
-        if(frames%100===0) {
-            // Obstaculo ou Moeda
-            let type = Math.random() > 0.3 ? "saw" : "coin";
-            let y = 30 + Math.random() * (GAME_H - 80);
-            entities.push({x:GAME_W+20, y:y, type:type, r: type==="saw"?10:6});
-        }
-        
-        // Entidades
-        for(let i=entities.length-1; i>=0; i--) {
-            let e = entities[i]; e.x -= speed;
-            
-            // Desenho e Colisão
-            let dx = (player.x) - e.x;
-            let dy = (player.y+10) - e.y; // Ajuste centro
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(e.type === "saw") {
-                ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(frames*0.1);
-                ctx.fillStyle="#666"; ctx.beginPath(); ctx.arc(0,0,10,0,6.28); ctx.fill();
-                ctx.fillStyle="#aaa"; ctx.fillRect(-12,-2,24,4); ctx.fillRect(-2,-12,4,24);
-                ctx.restore();
-                if(dist < 18) gameOver();
-            } else {
-                ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.arc(e.x,e.y,6,0,6.28); ctx.fill();
-                ctx.fillStyle="#fff"; ctx.font="8px Arial"; ctx.fillText("$", e.x-2, e.y+3);
-                if(dist < 16) {
-                    score++; SAVES.coins++; Sound.play("coin");
-                    spawnParticles(e.x, e.y, "gold", 5);
-                    entities.splice(i,1); updateHUD();
-                }
-            }
-            if(e.x < -20) entities.splice(i,1);
-        }
-        
-        drawPlayer();
-    
-    } else if (state === "MENU") {
-        drawPlayer();
-        ctx.textAlign="center";
-        ctx.font="26px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("VAMOS FLUTUAR", GAME_W/2, 60);
-        
-        drawBtn("JOGAR", 140, "red");
-        drawBtn("LOJA", 180, "gold");
-        drawBtn("RANKING", 220, "cyan");
-        drawBtn(fbUser ? (SAVES.nick||"CONTA OK") : "LOGIN / SAVE", 260, fbUser?"#0f0":"#888");
-        drawBtn("CODIGO", 300, "magenta");
-        
-    } else if (state === "GAMEOVER") {
-        ctx.fillStyle="rgba(0,0,0,0.7)"; ctx.fillRect(0,0,GAME_W,GAME_H);
-        ctx.textAlign="center"; 
-        ctx.font="24px 'Creepster'"; ctx.fillStyle="red"; ctx.fillText("VOCE FLUTUOU", GAME_W/2, 130);
-        ctx.font="10px 'Press Start 2P'"; ctx.fillStyle="white"; ctx.fillText("PONTOS: "+score, GAME_W/2, 160);
-        if(score>=SAVES.best && score>0) { ctx.fillStyle="gold"; ctx.fillText("NOVO RECORDE!", GAME_W/2, 180); }
-        ctx.fillStyle="#888"; ctx.font="8px 'Press Start 2P'"; ctx.fillText("TOQUE PARA VOLTAR", GAME_W/2, 250);
-    
-    } else if (state === "SHOP") {
-        ctx.textAlign="center"; ctx.fillStyle="red"; ctx.font="16px 'Creepster'"; ctx.fillText("LOJA MACABRA", GAME_W/2, 30);
-        ITEMS.forEach((it, i) => {
-            let y = 50 + i*45;
-            let has = SAVES.balloons.includes(it.id);
-            let eq = SAVES.equipped === it.id;
-            ctx.fillStyle="#111"; ctx.fillRect(10,y,220,40);
-            ctx.strokeStyle = eq ? "#0f0" : (has?"#555":"#f00"); ctx.strokeRect(10,y,220,40);
-            
-            ctx.fillStyle=it.color; ctx.beginPath(); ctx.arc(30,y+20,8,0,6.28); ctx.fill();
-            ctx.fillStyle="white"; ctx.textAlign="left"; ctx.font="8px 'Press Start 2P'"; ctx.fillText(it.name, 50, y+24);
-            
-            ctx.textAlign="right"; ctx.fillStyle = eq?"#0f0":(has?"#aaa":"gold");
-            ctx.fillText(eq?"USANDO":(has?"EQUIPAR":it.price), 220, y+24);
-        });
-        ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
-    } else if (state === "LEADERBOARD") {
-        ctx.textAlign="center"; ctx.fillStyle="cyan"; ctx.font="16px 'Creepster'"; ctx.fillText("LENDAS", GAME_W/2, 30);
-        if(leaderboard.length === 0) ctx.fillText("CARREGANDO...", GAME_W/2, 150);
-        leaderboard.forEach((d, i) => {
-            ctx.textAlign="left"; ctx.font="8px 'Press Start 2P'"; ctx.fillStyle=i===0?"gold":"white";
-            ctx.fillText((i+1)+". "+d.name, 20, 60+i*25);
-            ctx.textAlign="right"; ctx.fillText(d.score, 220, 60+i*25);
-        });
-        ctx.textAlign="center"; ctx.fillStyle="white"; ctx.fillText("VOLTAR", GAME_W/2, 340);
-    }
-
-    if(shake > 0 && shake < 0.5) ctx.restore(); // Fecha shake se ainda existir
+// Input do Jogador
+function jump() {
+    if(!gameActive) return;
+    player.vy = -4.5;
 }
 
-function drawPlayer() {
-    let y = player.y; let x = player.x;
-    if(state === "MENU") { y = 100; x = GAME_W/2 - 5; }
-    
-    ctx.save(); ctx.translate(x, y);
-    // Corda
-    ctx.strokeStyle="white"; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-25); ctx.stroke();
-    // Balão
-    let bColor = ITEMS.find(b=>b.id===SAVES.equipped).color;
-    ctx.fillStyle=bColor; ctx.beginPath(); ctx.ellipse(0,-25, 7, 9, 0, 0, 6.28); ctx.fill();
-    ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.beginPath(); ctx.ellipse(2,-27, 2, 3, 0, 0, 6.28); ctx.fill();
-    // Corpo
-    ctx.fillStyle="#ddd"; ctx.fillRect(-5,0,10,12);
-    ctx.fillStyle="#d00"; ctx.fillRect(-1,2,2,2); ctx.fillRect(-1,6,2,2); // Botoes
-    // Rosto
-    ctx.fillStyle="white"; ctx.fillRect(-5,-10,10,10);
-    ctx.fillStyle="#c00"; // Cabelo
-    ctx.beginPath(); ctx.moveTo(-5,-8); ctx.lineTo(-9,-10); ctx.lineTo(-6,-4); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(5,-8); ctx.lineTo(9,-10); ctx.lineTo(6,-4); ctx.fill();
-    // Make
-    ctx.fillStyle="#d00"; ctx.fillRect(-1,-4,2,2); // Nariz
-    ctx.beginPath(); ctx.moveTo(-1,-4); ctx.lineTo(-1,-8); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(1,-4); ctx.lineTo(1,-8); ctx.stroke();
-    ctx.restore();
-}
-
-function drawBtn(text, y, color) {
-    ctx.fillStyle="#111"; ctx.fillRect(40, y, 160, 25);
-    ctx.strokeStyle=color; ctx.strokeRect(40, y, 160, 25);
-    ctx.fillStyle="white"; ctx.font="8px 'Press Start 2P'"; ctx.fillText(text, GAME_W/2, y+16);
-}
+window.addEventListener('mousedown', jump);
+window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
 
 function gameOver() {
-    shake = 10; Sound.play("die");
-    spawnParticles(player.x, player.y, "#d00", 20);
-    if(score > SAVES.best) SAVES.best = score;
-    window.saveLocal();
-    state = "GAMEOVER";
+    gameActive = false;
+    document.getElementById('overlay').style.display = 'flex';
+    document.querySelector('.title').innerText = "VOCÊ CAIU";
+    save();
 }
 
-// --- CONTROLES UNIFICADOS ---
-function input(e) {
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-    e.preventDefault();
-    e.stopPropagation();
-    Sound.init();
+function loop() {
+    ctx.fillStyle = '#050005';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const rect = canvas.getBoundingClientRect();
-    const t = (e.touches && e.touches[0]) || e;
-    const x = (t.clientX - rect.left) * (GAME_W / rect.width);
-    const y = (t.clientY - rect.top) * (GAME_H / rect.height);
+    if(gameActive) {
+        frames++;
+        speed += 0.0005;
 
-    if(state === "MENU") {
-        if(y>140 && y<165) { state="GAME"; resetGame(); Sound.play("jump"); }
-        else if(y>180 && y<205) { state="SHOP"; Sound.play("jump"); }
-        else if(y>220 && y<245) { 
-            state="LEADERBOARD"; 
-            if(db) db.collection("users").orderBy("best","desc").limit(10).get().then(s=>{
-                leaderboard=[]; s.forEach(d=>leaderboard.push({name:d.data().nick||"SEM NOME", score:
+        // Física
+        player.vy += 0.25;
+        player.y += player.vy;
+
+        if(player.y > canvas.height || player.y < -50) gameOver();
+
+        // Gerar Obstáculos (Serras)
+        if(frames % 100 === 0) {
+            obstacles.push({ x: canvas.width, y: Math.random()*(canvas.height-100)+50, size: 15 });
+        }
+
+        // Gerar Moedas
+        if(frames % 150 === 0) {
+            pickups.push({ x: canvas.width, y: Math.random()*(canvas.height-100)+50 });
+        }
+
+        // Desenhar e mover obstáculos
+        ctx.fillStyle = "#666";
+        obstacles.forEach((obs, i) => {
+            obs.x -= speed;
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y, obs.size, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Colisão
+            if(Math.hypot(player.x - obs.x, player.y - obs.y) < obs.size + 10) gameOver();
+            if(obs.x < -20) obstacles.splice(i, 1);
+        });
+
+        // Desenhar e mover moedas
+        ctx.fillStyle = "gold";
+        pickups.forEach((p, i) => {
+            p.x -= speed;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+            ctx.fill();
+            
+            if(Math.hypot(player.x - p.x, player.y - p.y) < 20) {
+                coins += 1;
+                score += 10;
+                hudScore.innerText = score;
+                hudCoins.innerText = '$' + coins;
+                pickups.splice(i, 1);
+            }
+            if(p.x < -20) pickups.splice(i, 1);
+        });
+
+        // Desenhar Pennywise
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        
+        // Balão
+        ctx.strokeStyle = "white";
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, -25); ctx.stroke();
+        ctx.fillStyle = currentBalloon;
+        ctx.beginPath(); ctx.ellipse(0, -30, 8, 10, 0, 0, Math.PI*2); ctx.fill();
+        
+        // Palhaço (Simples)
+        ctx.fillStyle = "white"; ctx.fillRect(-8, -5, 16, 16); // Cabeça
+        ctx.fillStyle = "red"; ctx.fillRect(-2, -1, 4, 4); // Nariz
+        ctx.fillStyle = "#ccc"; ctx.fillRect(-8, 11, 16, 12); // Roupa
+        ctx.restore();
+
+    } else {
+        // Pennywise parado no menu
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.fillStyle = currentBalloon;
+        ctx.beginPath(); ctx.ellipse(0, -30, 8, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "white"; ctx.fillRect(-8, -5, 16, 16);
+        ctx.restore();
+    }
+
+    requestAnimationFrame(loop);
+}
+
+// Iniciar
+hudCoins.innerText = '$' + coins;
+loop();
+</script>
+</body>
+</html>
