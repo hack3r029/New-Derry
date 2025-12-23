@@ -1,257 +1,246 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>VAMOS FLUTUAR 🎈</title>
-<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Press+Start+2P&display=swap" rel="stylesheet">
-<style>
-    * { box-sizing: border-box; touch-action: none; user-select: none; }
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: 'Press Start 2P', cursive; }
-    #canvas-container { position: relative; width: 100vw; height: 100vh; max-width: 400px; max-height: 700px; border: 2px solid #333; }
-    canvas { width: 100%; height: 100%; background: #050005; image-rendering: pixelated; }
-    
-    /* HUD */
-    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; color: white; font-size: 10px; pointer-events: none; z-index: 10; }
-    
-    /* TELA DE INICIO (OVERLAY) */
-    #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; text-align: center; }
-    .title { font-family: 'Creepster', serif; color: red; font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 10px red; }
-    .btn-start { background: red; color: white; border: none; padding: 15px 30px; font-family: 'Press Start 2P'; font-size: 12px; cursor: pointer; border-radius: 5px; }
-    
-    /* LOJA */
-    #shop-ui { position: absolute; inset: 0; background: #000; display: none; flex-direction: column; padding: 20px; z-index: 30; color: white; overflow-y: auto; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT: THE TERROR BENEATH DERRY 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; text-shadow: 2px 2px #000; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 1px solid rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); }
+        #instructions { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); color: white; display: flex; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            text-align: center; z-index: 100; cursor: pointer;
+        }
+        h1 { color: red; font-size: 3em; margin-bottom: 0.5em; letter-spacing: 5px; }
+        .bar-container { width: 200px; height: 10px; border: 1px solid white; margin-top: 10px; }
+        #sanity-bar { width: 100%; height: 100%; background: red; transition: width 0.3s; }
+        #flash { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: red; opacity: 0; pointer-events: none; }
+    </style>
 </head>
 <body>
 
-<div id="canvas-container">
-    <div id="hud">
-        <div id="score">0</div>
-        <div id="coins" style="color: gold;">$0</div>
+    <div id="instructions">
+        <h1>IT: THE TERROR</h1>
+        <p>COLETE OS 5 BARQUINHOS NOS ESGOTOS</p>
+        <p>NÃO DEIXE ELE CHEGAR PERTO</p>
+        <button style="padding: 15px 30px; background: red; color: white; border: none; cursor: pointer; font-family: inherit;">ENTRAR NO ESGOTO</button>
     </div>
 
-    <div id="overlay">
-        <div class="title">IT: FLUTUAR</div>
-        <button class="btn-start" onclick="startGame()">JOGAR</button>
-        <p style="color: #666; font-size: 8px; margin-top: 20px;">TOQUE PARA SUBIR</p>
-        <button onclick="toggleShop(true)" style="background:none; border:1px solid #444; color:#aaa; font-size:8px; padding:10px; margin-top:20px;">LOJA</button>
+    <div id="ui">
+        <div>BARQUINHOS: <span id="items">0</span>/5</div>
+        <div>SANIDADE:</div>
+        <div class="bar-container"><div id="sanity-bar"></div></div>
     </div>
 
-    <div id="shop-ui">
-        <h2 style="color:red; font-family:'Creepster'; text-align:center;">LOJA</h2>
-        <div id="shop-items"></div>
-        <button onclick="toggleShop(false)" style="margin-top:20px; padding:10px; background:#333; color:white; border:none; font-family:inherit;">VOLTAR</button>
-    </div>
+    <div id="crosshair"></div>
+    <div id="flash"></div>
 
-    <canvas id="game"></canvas>
-</div>
-
-<script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const hudScore = document.getElementById('score');
-const hudCoins = document.getElementById('coins');
-
-// Configuração fixa para evitar erros de renderização
-canvas.width = 320;
-canvas.height = 480;
-
-let gameActive = false;
-let score = 0;
-let coins = parseInt(localStorage.getItem('it_coins')) || 0;
-let speed = 2;
-let frames = 0;
-
-// Player
-const player = { x: 50, y: 200, vy: 0, w: 20, h: 30 };
-
-// Entidades
-let obstacles = [];
-let pickups = [];
-
-// Cores de Balão (Loja)
-let ownedBalloons = JSON.parse(localStorage.getItem('it_balloons')) || ['#ff0000'];
-let currentBalloon = localStorage.getItem('it_current') || '#ff0000';
-
-const shopData = [
-    { name: 'SANGUE', color: '#ff0000', price: 0 },
-    { name: 'AZUL', color: '#0000ff', price: 100 },
-    { name: 'VERDE', color: '#00ff00', price: 250 },
-    { name: 'DOURADO', color: '#ffd700', price: 500 },
-    { name: 'NEON', color: '#ff00ff', price: 1000 }
-];
-
-function save() {
-    localStorage.setItem('it_coins', coins);
-    localStorage.setItem('it_balloons', JSON.stringify(ownedBalloons));
-    localStorage.setItem('it_current', currentBalloon);
-    hudCoins.innerText = '$' + coins;
-}
-
-function startGame() {
-    document.getElementById('overlay').style.display = 'none';
-    resetGame();
-    gameActive = true;
-}
-
-function resetGame() {
-    player.y = 200;
-    player.vy = 0;
-    score = 0;
-    speed = 2.5;
-    obstacles = [];
-    pickups = [];
-    frames = 0;
-    hudScore.innerText = '0';
-    save();
-}
-
-function toggleShop(open) {
-    const ui = document.getElementById('shop-ui');
-    ui.style.display = open ? 'flex' : 'none';
-    if(open) renderShop();
-}
-
-function renderShop() {
-    const container = document.getElementById('shop-items');
-    container.innerHTML = '';
-    shopData.forEach(item => {
-        const div = document.createElement('div');
-        div.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #222;";
-        const isOwned = ownedBalloons.includes(item.color);
-        const isCurrent = currentBalloon === item.color;
-        
-        div.innerHTML = `
-            <div style="display:flex; align-items:center;">
-                <div style="width:15px; height:15px; background:${item.color}; border-radius:50%; margin-right:10px;"></div>
-                <span style="font-size:8px;">${item.name}</span>
-            </div>
-            <button onclick="buyItem('${item.color}', ${item.price})" style="font-size:8px; padding:5px; background:${isCurrent?'#0f0':(isOwned?'#444':'red')}; color:white; border:none;">
-                ${isCurrent ? 'USANDO' : (isOwned ? 'EQUIPAR' : '$'+item.price)}
-            </button>
-        `;
-        container.appendChild(div);
-    });
-}
-
-function buyItem(color, price) {
-    if(ownedBalloons.includes(color)) {
-        currentBalloon = color;
-    } else if(coins >= price) {
-        coins -= price;
-        ownedBalloons.push(color);
-        currentBalloon = color;
-    } else {
-        alert("MOEDAS INSUFICIENTES!");
-    }
-    save();
-    renderShop();
-}
-
-// Input do Jogador
-function jump() {
-    if(!gameActive) return;
-    player.vy = -4.5;
-}
-
-window.addEventListener('mousedown', jump);
-window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
-
-function gameOver() {
-    gameActive = false;
-    document.getElementById('overlay').style.display = 'flex';
-    document.querySelector('.title').innerText = "VOCÊ CAIU";
-    save();
-}
-
-function loop() {
-    ctx.fillStyle = '#050005';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    if(gameActive) {
-        frames++;
-        speed += 0.0005;
-
-        // Física
-        player.vy += 0.25;
-        player.y += player.vy;
-
-        if(player.y > canvas.height || player.y < -50) gameOver();
-
-        // Gerar Obstáculos (Serras)
-        if(frames % 100 === 0) {
-            obstacles.push({ x: canvas.width, y: Math.random()*(canvas.height-100)+50, size: 15 });
-        }
-
-        // Gerar Moedas
-        if(frames % 150 === 0) {
-            pickups.push({ x: canvas.width, y: Math.random()*(canvas.height-100)+50 });
-        }
-
-        // Desenhar e mover obstáculos
-        ctx.fillStyle = "#666";
-        obstacles.forEach((obs, i) => {
-            obs.x -= speed;
-            ctx.beginPath();
-            ctx.arc(obs.x, obs.y, obs.size, 0, Math.PI*2);
-            ctx.fill();
-            
-            // Colisão
-            if(Math.hypot(player.x - obs.x, player.y - obs.y) < obs.size + 10) gameOver();
-            if(obs.x < -20) obstacles.splice(i, 1);
-        });
-
-        // Desenhar e mover moedas
-        ctx.fillStyle = "gold";
-        pickups.forEach((p, i) => {
-            p.x -= speed;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
-            ctx.fill();
-            
-            if(Math.hypot(player.x - p.x, player.y - p.y) < 20) {
-                coins += 1;
-                score += 10;
-                hudScore.innerText = score;
-                hudCoins.innerText = '$' + coins;
-                pickups.splice(i, 1);
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
-            if(p.x < -20) pickups.splice(i, 1);
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- CONFIGURAÇÃO BÁSICA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020202);
+        scene.fog = new THREE.FogExp2(0x020202, 0.15);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new PointerLockControls(camera, document.body);
+        const instructions = document.getElementById('instructions');
+
+        instructions.addEventListener('click', () => {
+            controls.lock();
         });
 
-        // Desenhar Pennywise
-        ctx.save();
-        ctx.translate(player.x, player.y);
-        
-        // Balão
-        ctx.strokeStyle = "white";
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, -25); ctx.stroke();
-        ctx.fillStyle = currentBalloon;
-        ctx.beginPath(); ctx.ellipse(0, -30, 8, 10, 0, 0, Math.PI*2); ctx.fill();
-        
-        // Palhaço (Simples)
-        ctx.fillStyle = "white"; ctx.fillRect(-8, -5, 16, 16); // Cabeça
-        ctx.fillStyle = "red"; ctx.fillRect(-2, -1, 4, 4); // Nariz
-        ctx.fillStyle = "#ccc"; ctx.fillRect(-8, 11, 16, 12); // Roupa
-        ctx.restore();
+        controls.addEventListener('lock', () => instructions.style.display = 'none');
+        controls.addEventListener('unlock', () => instructions.style.display = 'flex');
 
-    } else {
-        // Pennywise parado no menu
-        ctx.save();
-        ctx.translate(player.x, player.y);
-        ctx.fillStyle = currentBalloon;
-        ctx.beginPath(); ctx.ellipse(0, -30, 8, 10, 0, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "white"; ctx.fillRect(-8, -5, 16, 16);
-        ctx.restore();
-    }
+        // --- ILUMINAÇÃO (Lanterna) ---
+        const lantern = new THREE.SpotLight(0xffffff, 50);
+        lantern.angle = Math.PI / 6;
+        lantern.penumbra = 0.3;
+        lantern.castShadow = true;
+        camera.add(lantern);
+        camera.add(lantern.target);
+        lantern.target.position.set(0, 0, -1);
+        scene.add(camera);
 
-    requestAnimationFrame(loop);
-}
+        const ambient = new THREE.AmbientLight(0x404040, 0.1);
+        scene.add(ambient);
 
-// Iniciar
-hudCoins.innerText = '$' + coins;
-loop();
-</script>
+        // --- CENÁRIO (Esgoto Infinito) ---
+        const textureLoader = new THREE.TextureLoader();
+        const wallTex = textureLoader.load('https://threejs.org/examples/textures/brick_diffuse.jpg');
+        wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+        wallTex.repeat.set(5, 1);
+
+        const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0x444444 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
+
+        // Criar Corredores
+        function createTunnel(z) {
+            const tunnel = new THREE.Group();
+            
+            // Chão
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 50), floorMat);
+            floor.position.y = -2;
+            floor.receiveShadow = true;
+            tunnel.add(floor);
+
+            // Teto
+            const ceil = new THREE.Mesh(new THREE.BoxGeometry(10, 0.1, 50), wallMat);
+            ceil.position.y = 4;
+            tunnel.add(ceil);
+
+            // Paredes
+            const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 6, 50), wallMat);
+            wallL.position.set(-5, 1, 0);
+            tunnel.add(wallL);
+
+            const wallR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 6, 50), wallMat);
+            wallR.position.set(5, 1, 0);
+            tunnel.add(wallR);
+
+            tunnel.position.z = z;
+            scene.add(tunnel);
+        }
+
+        for(let i=0; i<10; i++) createTunnel(-i * 50);
+
+        // --- IT (PENNYWISE) ---
+        const itGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+        const itMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const pennywise = new THREE.PointLight(0xff0000, 10, 15);
+        pennywise.add(new THREE.Mesh(itGeometry, itMaterial));
+        pennywise.position.set(0, 0, -30);
+        scene.add(pennywise);
+
+        // --- ITENS (Barquinhos) ---
+        const items = [];
+        const boatGeo = new THREE.ConeGeometry(0.2, 0.5, 4);
+        const boatMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+        function spawnBoat() {
+            const boat = new THREE.Mesh(boatGeo, boatMat);
+            boat.position.set(Math.random()*8-4, -1.8, -Math.random()*300);
+            scene.add(boat);
+            items.push(boat);
+        }
+        for(let i=0; i<5; i++) spawnBoat();
+
+        // --- LÓGICA DE JOGO ---
+        let collected = 0;
+        let sanity = 100;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+
+        const onKeyDown = (e) => {
+            switch(e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyD': moveRight = true; break;
+            }
+        };
+        const onKeyUp = (e) => {
+            switch(e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (controls.isLocked) {
+                // Movimento
+                velocity.x -= velocity.x * 10.0 * 0.016;
+                velocity.z -= velocity.z * 10.0 * 0.016;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * 0.016;
+                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * 0.016;
+
+                controls.moveRight(-velocity.x * 0.016);
+                controls.moveForward(-velocity.z * 0.016);
+
+                // Perseguição do Pennywise
+                const distToIt = camera.position.distanceTo(pennywise.position);
+                
+                // Pennywise se aproxima lentamente
+                const dirToPlayer = new THREE.Vector3().subVectors(camera.position, pennywise.position).normalize();
+                pennywise.position.add(dirToPlayer.multiplyScalar(0.03 + (collected * 0.01)));
+                
+                // Oscilação de Pennywise
+                pennywise.position.y = Math.sin(Date.now() * 0.005) * 0.5;
+
+                // Sanidade cai se ele estiver perto
+                if(distToIt < 8) {
+                    sanity -= 0.2;
+                    document.getElementById('flash').style.opacity = (8 - distToIt) / 8;
+                } else {
+                    document.getElementById('flash').style.opacity = 0;
+                }
+
+                // Coleta de Itens
+                items.forEach((boat, index) => {
+                    if(camera.position.distanceTo(boat.position) < 2) {
+                        scene.remove(boat);
+                        items.splice(index, 1);
+                        collected++;
+                        document.getElementById('items').innerText = collected;
+                        if(collected === 5) alert("VOCÊ ENCONTROU A SAÍDA... POR ENQUANTO.");
+                    }
+                    boat.rotation.y += 0.02;
+                });
+
+                // Game Over
+                if(sanity <= 0 || distToIt < 1.5) {
+                    alert("VOCÊ FLUTUOU TAMBÉM! 🎈");
+                    location.reload();
+                }
+
+                document.getElementById('sanity-bar').style.width = sanity + "%";
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Ajuste de Janela
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
 </body>
 </html>
